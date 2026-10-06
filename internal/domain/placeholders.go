@@ -24,14 +24,11 @@ func LoopField(field string) string {
 	return Key(LoopItemPrefix, field)
 }
 
-// Placeholders returns a flat map for go-docx after loop expansion (issue_0.brief, …).
+// Placeholders returns report metadata keys. Loop row keys (issue_0.*, record_0.*) come from BuildLoopPlaceholders.
 func (d Document) Placeholders() map[string]string {
 	out := make(map[string]string)
 	bindObject(out, "Report", d.Report)
 	bindObject(out, "Summary", d.Summary)
-	for i, item := range d.Items {
-		bindIssue(out, fmt.Sprintf("%s_%d", LoopItemPrefix, i), item)
-	}
 	return out
 }
 

@@ -14,7 +14,7 @@ func TestBuildFromMapFlatAndRecords(t *testing.T) {
 			{"Title": "INC-1", "Category": "Hardware"},
 		},
 	}
-	doc, err := BuildFromMap(data)
+	doc, err := BuildFromMap(data, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestBuildFromMapNested(t *testing.T) {
 			map[string]interface{}{"Title": "A", "Category": "C"},
 		},
 	}
-	doc, err := BuildFromMap(data)
+	doc, err := BuildFromMap(data, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestBuildFromMapNested(t *testing.T) {
 func TestBuildFromMapDefaultTime(t *testing.T) {
 	doc, err := BuildFromMap(map[string]interface{}{RecordsKey: []map[string]interface{}{
 		{"Title": "X", "Category": "Y"},
-	}})
+	}}, "")
 	if err != nil {
 		t.Fatal(err)
 	}

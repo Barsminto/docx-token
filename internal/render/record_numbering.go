@@ -13,7 +13,7 @@ import (
 const recordSubsectionNumIDBase = 100
 
 var (
-	recordHeadingRE            = regexp.MustCompile(`\{issue(?:_\d+)?\.numberedTitle\}`)
+	recordHeadingRE            = regexp.MustCompile(`\{[a-zA-Z_][a-zA-Z0-9_]*(?:_\d+)?\.numberedTitle\}`)
 	leadingChapterNumRE        = regexp.MustCompile(`^\d+\.\s*`)
 	recordSubsectionLeadingRE  = regexp.MustCompile(`^\d+\.\d+\.\s*`)
 	legacyRecordSubsecRE       = regexp.MustCompile(`^\{issue(?:_\d+)?\.sectionNumber\}\.\d+\s*`)

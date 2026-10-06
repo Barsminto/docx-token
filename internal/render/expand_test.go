@@ -19,7 +19,15 @@ func TestExpandIssueListAndDetailLoops(t *testing.T) {
 <w:p><w:r><w:t>` + template.EndRecordMarker + `</w:t></w:r></w:p>
 </w:body>`
 
-	out, err := expandAllLoops(xml, 2)
+	specs := []template.LoopSpec{
+		{Begin: template.BeginIssueListMarker, End: template.EndIssueListMarker, ItemPrefix: "issue"},
+		{Begin: template.BeginRecordMarker, End: template.EndRecordMarker, ItemPrefix: "issue"},
+	}
+	counts := map[string]int{
+		template.BeginIssueListMarker: 2,
+		template.BeginRecordMarker:      2,
+	}
+	out, err := expandAllLoops(xml, specs, counts)
 	if err != nil {
 		t.Fatal(err)
 	}

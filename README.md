@@ -75,7 +75,9 @@ err := docxtoken.Fill(
 ## 数据格式（`map[string]interface{}`）
 
 支持 **嵌套 map**；标量会展平为 `executiveSummary.identified` 等形式参与替换。  
-**Concern 列表**推荐放在 `case.issues`（与模板循环字段 `issue.*` 一致）。
+
+**列表数据**：路径由模板里的 `{BEGIN:点路径:变量名}` 决定（例如 `case.case_issues` + 区内 `{record.xxx}`）。  
+内置 GI 模板固定为 `case.issues` + 变量名 `issue`（`{issue.brief}`）。每条循环自动带 **`{变量.listIndex}`**（1、2、3…，不由数据库提供）。
 
 ### 最小示例
 
@@ -150,7 +152,36 @@ data := map[string]interface{}{
 
 ## 模板约定（自定义模板必读）
 
-### 循环区域
+### 循环区域（可自定义数据路径与变量名）
+
+语法：
+
+```text
+{BEGIN:<map 中的点路径>:<循环变量名>}
+  … 段落 …
+{END:<同一段路径>:<同一变量名>}
+```
+
+示例（数据在 `case.case_issues`，模板里用 `record.*`）：
+
+```text
+{BEGIN:case.case_issues:record}
+{record.code}: {record.title}
+{END:case.case_issues:record}
+```
+
+```go
+"case": map[string]interface{}{
+    "case_issues": []map[string]interface{}{
+        {"code": "C-1", "title": "Alpha", "brief": "…"},
+    },
+},
+```
+
+- **数据路径** `<点路径>`：从 `map` 里取 `[]map[string]interface{}`（与路径一致）。
+- **循环变量** `<变量名>`：区内写 `{record.xxx}`；展开后变为 `{record_0.xxx}`、`{record_1.xxx}` …
+- **`listIndex`**：每条自动注入 `{record.listIndex}` → `1`、`2`、`3`…（**不读数据库**）。若库里有同名字段，以自动序号为准。
+- 仍支持内置 GI：`{BEGIN:case.issues}` / `:background` / `:record`（数据路径均为 `case.issues`，变量名 **`issue`**）。
 
 | 区域 | 开始 | 结束 |
 |------|------|------|
@@ -158,11 +189,13 @@ data := map[string]interface{}{
 | Background concern 列表 | `{BEGIN:case.issues:background}` | `{END:case.issues:background}` |
 | 每条 INVESTIGATION 整块 | `{BEGIN:case.issues:record}` | `{END:case.issues:record}` |
 
-循环内一行示例：
+循环内一行示例（内置变量名 `issue`）：
 
 `Concern {issue.listIndex}: {issue.brief}`
 
 （不要手打 `a.`；字母由 Word 列表生成。）
+
+程序还会为每条 concern 计算 `numberedTitle`、`sectionNumber` 等（与 `issue` / 主 record 循环同路径时，写到 `{record_0.numberedTitle}` 或 `{issue_0.numberedTitle}`）。
 
 ### 小节标记
 
@@ -188,8 +221,11 @@ data := map[string]interface{}{
 docx-token/
 ├── docxtoken/          # 公开 API（其他项目只 import 这里）
 │   ├── api.go          # Generate(Options)
-│   ├── fill.go         # Fill(...)
-│   └── mapdata.go      # map → 内部 Document + 标量占位符
+│   ├── api.go              # Generate(Options)
+│   ├── fill.go             # Fill — 发现循环、展开、写文件
+│   ├── loop_placeholders.go # 按 BEGIN 路径绑定 prefix_0.* + listIndex
+│   ├── path.go             # SliceAtPath(data, "case.case_issues")
+│   └── mapdata.go          # map → Document（章号用主 record 循环路径）
 ├── internal/
 │   ├── domain/         # Document、LineItem、占位符键、章号
 │   ├── render/         # 循环展开、OOXML 列表补丁、go-docx 替换
@@ -207,9 +243,10 @@ docx-token/
 
 ### 填充流水线（实现概要）
 
-1. **`BuildFromMap`**：解析 `case.issues`，构建 `domain.Document`。
-2. **`FirstIssueSeq` + `AssignIssueSeq`**：调查章、列表序号。
-3. **`expandRecordBlocks`**：按 concern 条数复制三块循环 XML。
+1. **`DiscoverLoopSpecsFromDocx`**：解析模板中所有 `{BEGIN:path:prefix}`。
+2. **`BuildFromMap` + `BuildLoopPlaceholders`**：按 path 取 slice，生成 `record_0.*` / `issue_0.*`（含 **listIndex**）。
+3. **`FirstIssueSeq` + `AssignIssueSeq`**：调查章、列表序号（主 record 循环的 path）。
+4. **`expandRecordBlocks`**：每个 BEGIN 区域按对应 slice 长度复制 XML，`{prefix.` → `{prefix_0.`。
 4. **`patchDocumentXML`**：调查/结论/建议的 Word `numId`、concern 字母列表、页眉占位符修复等。
 5. **`go-docx` `ReplaceAll`**：替换正文 + **页眉/页脚**中的 `{token}`。
 6. 写出 `OutputPath`。

@@ -12,7 +12,7 @@ import (
 
 // Generate reads issue sequence from the template, expands the loop, and replaces tokens.
 // extras are merged into placeholders (for custom scalar keys from map[string]interface{}).
-func Generate(templatePath, outputPath string, doc domain.Document, extras map[string]string) error {
+func Generate(templatePath, outputPath string, doc domain.Document, extras map[string]string, loopSpecs []template.LoopSpec, loopCounts map[string]int, loopPlaceholders map[string]string) error {
 	raw, err := os.ReadFile(templatePath)
 	if err != nil {
 		return fmt.Errorf("read template: %w", err)
@@ -26,7 +26,7 @@ func Generate(templatePath, outputPath string, doc domain.Document, extras map[s
 	concNum := firstSeq + len(doc.Items)
 	recNum := concNum + 1
 
-	expanded, err := expandRecordBlocks(raw, len(doc.Items))
+	expanded, err := expandRecordBlocks(raw, loopSpecs, loopCounts)
 	if err != nil {
 		return err
 	}
@@ -42,6 +42,9 @@ func Generate(templatePath, outputPath string, doc domain.Document, extras map[s
 	defer document.Close()
 
 	placeholders := doc.Placeholders()
+	for k, v := range loopPlaceholders {
+		placeholders[k] = v
+	}
 	for k, v := range extras {
 		placeholders[k] = v
 	}

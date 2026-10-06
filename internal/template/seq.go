@@ -23,9 +23,9 @@ func FirstIssueSeq(docxBytes []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	begin := strings.Index(xml, BeginRecordMarker)
+	begin := indexFirstRecordLoopBegin(xml)
 	if begin < 0 {
-		return 0, fmt.Errorf("%s not found in template", BeginRecordMarker)
+		return 1, nil
 	}
 
 	maxNum := 0
@@ -79,4 +79,24 @@ func readDocumentXML(docxBytes []byte) (string, error) {
 		return string(data), nil
 	}
 	return "", fmt.Errorf("word/document.xml not found")
+}
+
+func indexFirstRecordLoopBegin(xml string) int {
+	if idx := strings.Index(xml, BeginRecordMarker); idx >= 0 {
+		return idx
+	}
+	firstBegin := -1
+	for _, m := range loopMarkerRE.FindAllStringSubmatch(xml, -1) {
+		if len(m) < 3 || m[1] != "BEGIN" {
+			continue
+		}
+		pos := strings.Index(xml, m[0])
+		if strings.Contains(m[2], ":record") {
+			return pos
+		}
+		if firstBegin < 0 {
+			firstBegin = pos
+		}
+	}
+	return firstBegin
 }

@@ -13,7 +13,7 @@ const numberingRID = "rId10"
 
 var (
 	paragraphBlockRE  = regexp.MustCompile(`(?s)(<w:p\b[^>]*>)(.*?)(</w:p>)`)
-	concernListLineRE = regexp.MustCompile(`\{issue\.listIndex\}.*\{issue\.brief\}`)
+	concernListLineRE = regexp.MustCompile(`\{[a-zA-Z_][a-zA-Z0-9_]*\.listIndex\}.*\{[a-zA-Z_][a-zA-Z0-9_]*\.brief\}`)
 )
 
 // NumberingAttachOptions controls whether structural markers stay visible in the saved template.

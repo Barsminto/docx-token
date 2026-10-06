@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	concernListTokenRE = regexp.MustCompile(`\{issue(?:_\d+)?\.listIndex\}`)
+	concernListTokenRE = regexp.MustCompile(`\{[a-zA-Z_][a-zA-Z0-9_]*(?:_\d+)?\.listIndex\}`)
 	concernListFilledRE = regexp.MustCompile(`Concern \d+:`)
 )
 

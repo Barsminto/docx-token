@@ -13,13 +13,15 @@ const RecordsKey = "records"
 
 var recordListKeys = []string{RecordsKey, "items", "Records", "Items"}
 
-func BuildFromMap(data map[string]interface{}) (domain.Document, error) {
+// BuildFromMap builds a document; issueDataPath is the dot path to the concern slice
+// (e.g. case.issues or case.case_issues). Empty means default resolution (case.issues, records, …).
+func BuildFromMap(data map[string]interface{}, issueDataPath string) (domain.Document, error) {
 	if data == nil {
 		data = map[string]interface{}{}
 	}
 	flat := flattenMap("", data)
 
-	items, err := parseRecordInputs(data)
+	items, err := parseRecordInputs(data, issueDataPath)
 	if err != nil {
 		return domain.Document{}, err
 	}
@@ -102,8 +104,20 @@ func stringify(v interface{}) string {
 	}
 }
 
-func parseRecordInputs(data map[string]interface{}) ([]domain.LineItemInput, error) {
-	raw := issuesFromCase(data)
+func parseRecordInputs(data map[string]interface{}, issueDataPath string) ([]domain.LineItemInput, error) {
+	var raw interface{}
+	if issueDataPath != "" {
+		rows, err := SliceAtPath(data, issueDataPath)
+		if err != nil {
+			return nil, err
+		}
+		if len(rows) > 0 {
+			raw = rows
+		}
+	}
+	if raw == nil {
+		raw = issuesFromCase(data)
+	}
 	if raw == nil {
 		for _, key := range recordListKeys {
 			if v, ok := data[key]; ok {

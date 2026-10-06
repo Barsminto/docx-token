@@ -11,7 +11,7 @@ import (
 	"github.com/liboyang/docx-token/internal/template"
 )
 
-func expandRecordBlocks(docxBytes []byte, recordCount int) ([]byte, error) {
+func expandRecordBlocks(docxBytes []byte, loopSpecs []template.LoopSpec, loopCounts map[string]int) ([]byte, error) {
 	zr, err := zip.NewReader(bytes.NewReader(docxBytes), int64(len(docxBytes)))
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func expandRecordBlocks(docxBytes []byte, recordCount int) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("word/document.xml not found")
 	}
-	expanded, err := expandAllLoops(string(raw), recordCount)
+	expanded, err := expandAllLoops(string(raw), loopSpecs, loopCounts)
 	if err != nil {
 		return nil, err
 	}
@@ -60,25 +60,26 @@ func expandRecordBlocks(docxBytes []byte, recordCount int) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func expandAllLoops(xml string, recordCount int) (string, error) {
+func expandAllLoops(xml string, specs []template.LoopSpec, counts map[string]int) (string, error) {
 	out := xml
-	var err error
-	for _, region := range template.LoopRegions {
-		if !strings.Contains(out, region.Begin) {
+	for _, spec := range specs {
+		if !strings.Contains(out, spec.Begin) {
 			continue
 		}
-		out, err = expandLoopRegion(out, region, recordCount)
+		n := counts[spec.Begin]
+		next, err := expandLoopRegion(out, spec, n)
 		if err != nil {
-			return "", fmt.Errorf("%s: %w", region.Begin, err)
+			return "", fmt.Errorf("%s: %w", spec.Begin, err)
 		}
+		out = next
 	}
 	return out, nil
 }
 
 // expandLoopRegion duplicates paragraphs between markers; preserves all XML (styles, static subheadings).
-func expandLoopRegion(xml string, region template.LoopRegion, recordCount int) (string, error) {
-	begin, end := region.Begin, region.End
-	prefix := region.ItemPrefix
+func expandLoopRegion(xml string, spec template.LoopSpec, recordCount int) (string, error) {
+	begin, end := spec.Begin, spec.End
+	prefix := spec.ItemPrefix
 	if prefix == "" {
 		prefix = domain.LoopItemPrefix
 	}

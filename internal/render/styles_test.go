@@ -56,7 +56,9 @@ func TestGenerateFillsIssueTokens(t *testing.T) {
 		time.Date(2026, 10, 3, 15, 0, 0, 0, time.UTC),
 		sample.Items(),
 	)
-	if err := Generate(tpl, out, doc, sampleScalarStrings(data)); err != nil {
+	doc.AssignIssueSeq(3)
+	specs, counts, loopPH := loopContextForTest(tpl, doc)
+	if err := Generate(tpl, out, doc, sampleScalarStrings(data), specs, counts, loopPH); err != nil {
 		t.Fatal(err)
 	}
 
