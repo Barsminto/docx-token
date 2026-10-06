@@ -1,27 +1,39 @@
 package domain
 
-// Report report-level metadata and header tokens.
+// Report header / metadata tokens.
 type Report struct {
 	Title       string
 	Date        string
 	GeneratedAt string
 }
 
-// Summary section under "1. Summary".
+// Summary optional summary block (legacy keys).
 type Summary struct {
 	Author   string
 	Overview string
 }
 
-// LineItem one issue: Title for the summary list; NumberedTitle for section heading (Seq + Title).
+// LineItem one concern row: list + full investigation section in {BEGIN_RECORD}.
 type LineItem struct {
-	Seq           string
-	Title         string
-	NumberedTitle string
-	Category      string
+	Seq                  string
+	ListIndex            string
+	ListLetter           string // a, b, c … for executive summary concern lines
+	StmtLabelA           string // interview sub-bullet (a, c, …)
+	StmtLabelB           string // interview sub-bullet (b, d, …)
+	Title                string
+	NumberedTitle        string
+	SectionNumber        string
+	ConcernBrief         string
+	ConcernSummary       string
+	Category             string
+	FactsAndEvidence     string
+	TeamsChatFindings    string
+	ColleagueAStatements string
+	ColleagueBStatements string
+	FindingOutcome       string
 }
 
-// Document root object; Placeholders() flattens to {Report.*}, {Summary.*}, {Record_0.Title}, …
+// Document root object passed to the renderer.
 type Document struct {
 	Report  Report
 	Summary Summary

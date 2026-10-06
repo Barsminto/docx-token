@@ -16,12 +16,33 @@ func main() {
 		fmt.Fprintf(os.Stderr, "解析项目路径失败: %v\n", err)
 		os.Exit(1)
 	}
-	out := flag.String("out", defaultOut, "输出模板路径（默认项目 templates/template.docx）")
+	reference := flag.Bool("reference", false, "生成完整标记参考模板 templates/reference-template.docx")
+	out := flag.String("out", "", "输出路径（默认 template.docx 或 reference-template.docx）")
 	flag.Parse()
+
+	if *out == "" {
+		if *reference {
+			*out, err = project.ReferenceTemplatePath()
+		} else {
+			*out = defaultOut
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "解析项目路径失败: %v\n", err)
+			os.Exit(1)
+		}
+	}
 
 	if err := os.MkdirAll(filepath.Dir(*out), 0o755); err != nil {
 		fmt.Fprintf(os.Stderr, "创建目录失败: %v\n", err)
 		os.Exit(1)
+	}
+	if *reference {
+		if err := template.WriteReferenceTemplate(*out); err != nil {
+			fmt.Fprintf(os.Stderr, "生成参考模板失败: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("已生成参考模板: %s\n", *out)
+		return
 	}
 	if err := template.WriteReportTemplate(*out); err != nil {
 		fmt.Fprintf(os.Stderr, "生成模板失败: %v\n", err)

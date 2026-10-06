@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/liboyang/docx-token/internal/domain"
 	"github.com/liboyang/docx-token/internal/sample"
 	"github.com/liboyang/docx-token/internal/template"
 )
@@ -49,8 +50,13 @@ func TestGenerateFillsIssueTokens(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	doc := sample.Document(time.Date(2026, 10, 3, 15, 0, 0, 0, time.UTC))
-	if err := Generate(tpl, out, doc, nil); err != nil {
+	data := sample.FillMap(time.Date(2026, 10, 3, 15, 0, 0, 0, time.UTC))
+	doc := domain.NewDocument(
+		"PROJECT XXX", "Investigator",
+		time.Date(2026, 10, 3, 15, 0, 0, 0, time.UTC),
+		sample.Items(),
+	)
+	if err := Generate(tpl, out, doc, sampleScalarStrings(data)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -58,10 +64,11 @@ func TestGenerateFillsIssueTokens(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(docXML, "{Record_") || strings.Contains(docXML, "{BEGIN_RECORD}") {
+	if strings.Contains(docXML, "{issue_") || strings.Contains(docXML, "{BEGIN:case.issues") {
 		t.Fatal("placeholders should be replaced and loop markers removed")
 	}
-	if !strings.Contains(docXML, "INC-1001") {
-		t.Fatal("expected issue title in output")
+	if !strings.Contains(docXML, "CONCERN 1") {
+		t.Fatal("expected concern title in output")
 	}
 }
+

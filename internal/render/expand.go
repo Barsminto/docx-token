@@ -67,7 +67,7 @@ func expandAllLoops(xml string, recordCount int) (string, error) {
 		if !strings.Contains(out, region.Begin) {
 			continue
 		}
-		out, err = expandLoopRegion(out, region.Begin, region.End, recordCount)
+		out, err = expandLoopRegion(out, region, recordCount)
 		if err != nil {
 			return "", fmt.Errorf("%s: %w", region.Begin, err)
 		}
@@ -76,7 +76,12 @@ func expandAllLoops(xml string, recordCount int) (string, error) {
 }
 
 // expandLoopRegion duplicates paragraphs between markers; preserves all XML (styles, static subheadings).
-func expandLoopRegion(xml, begin, end string, recordCount int) (string, error) {
+func expandLoopRegion(xml string, region template.LoopRegion, recordCount int) (string, error) {
+	begin, end := region.Begin, region.End
+	prefix := region.ItemPrefix
+	if prefix == "" {
+		prefix = domain.LoopItemPrefix
+	}
 	indices := paragraphRE.FindAllStringIndex(xml, -1)
 	if len(indices) == 0 {
 		return "", fmt.Errorf("document has no paragraphs")
@@ -97,17 +102,17 @@ func expandLoopRegion(xml, begin, end string, recordCount int) (string, error) {
 	}
 
 	block := strings.Join(paragraphs[beginIdx+1:endIdx], "")
-	loopToken := "{" + domain.LoopItemPrefix + "."
+	loopToken := "{" + prefix + "."
 	if strings.Contains(block, loopToken) {
 		var repeated strings.Builder
 		for i := 0; i < recordCount; i++ {
-			chunk := strings.ReplaceAll(block, loopToken, fmt.Sprintf("{Record_%d.", i))
+			chunk := strings.ReplaceAll(block, loopToken, fmt.Sprintf("{%s_%d.", prefix, i))
 			repeated.WriteString(chunk)
 		}
 		block = repeated.String()
 	}
 
-	prefix := xml[:indices[beginIdx][0]]
+	head := xml[:indices[beginIdx][0]]
 	suffix := xml[indices[endIdx][1]:]
-	return prefix + block + suffix, nil
+	return head + block + suffix, nil
 }

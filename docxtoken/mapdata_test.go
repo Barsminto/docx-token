@@ -18,14 +18,14 @@ func TestBuildFromMapFlatAndRecords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if doc.Report.Title != "Q1" {
+	if doc.Report.Title != "Q1" { // Report.Title when Project.Name absent
 		t.Fatalf("title %q", doc.Report.Title)
 	}
 	if len(doc.Items) != 1 || doc.Items[0].Category != "Hardware" {
 		t.Fatalf("items %+v", doc.Items)
 	}
 	doc.AssignIssueSeq(2)
-	if doc.Items[0].NumberedTitle != "2. INC-1" {
+	if doc.Items[0].NumberedTitle != "2. INVESTIGATION: INC-1" {
 		t.Fatalf("numbered %q", doc.Items[0].NumberedTitle)
 	}
 }
@@ -40,8 +40,11 @@ func TestBuildFromMapNested(t *testing.T) {
 		},
 	}
 	doc, err := BuildFromMap(data)
-	if err != nil || doc.Report.Title != "Nested" {
-		t.Fatalf("%+v err=%v", doc, err)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if doc.Report.Title != "Nested" {
+		t.Fatalf("title %q", doc.Report.Title)
 	}
 }
 

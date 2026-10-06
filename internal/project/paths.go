@@ -10,8 +10,9 @@ const (
 	DirTemplates = "templates"
 	DirOutput    = "output"
 
-	FileTemplate = "template.docx"
-	FileOutput   = "report.docx"
+	FileTemplate          = "template.docx"
+	FileReferenceTemplate = "reference-template.docx"
+	FileOutput            = "report.docx"
 )
 
 // Root 从当前工作目录向上查找包含 go.mod 的目录作为项目根。
@@ -38,6 +39,14 @@ func TemplatePath() (string, error) {
 		return "", err
 	}
 	return filepath.Join(root, DirTemplates, FileTemplate), nil
+}
+
+func ReferenceTemplatePath() (string, error) {
+	root, err := Root()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(root, DirTemplates, FileReferenceTemplate), nil
 }
 
 func OutputPath() (string, error) {

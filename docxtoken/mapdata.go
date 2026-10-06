@@ -8,16 +8,11 @@ import (
 	"github.com/liboyang/docx-token/internal/domain"
 )
 
-// RecordsKey is the preferred map key for issue rows used in template loops.
+// RecordsKey is the preferred map key for concern rows used in template loops.
 const RecordsKey = "records"
 
 var recordListKeys = []string{RecordsKey, "items", "Records", "Items"}
 
-// BuildFromMap builds a Document from a flat or nested map.
-//
-// Top-level scalar keys use placeholder names, e.g. Report.Title, Summary.Author.
-// Nested objects are flattened with dots: Report -> Title becomes Report.Title.
-// Issue rows: data[records] as []map[string]interface{} (or []interface{} of maps).
 func BuildFromMap(data map[string]interface{}) (domain.Document, error) {
 	if data == nil {
 		data = map[string]interface{}{}
@@ -36,36 +31,36 @@ func BuildFromMap(data map[string]interface{}) (domain.Document, error) {
 		}
 	}
 
-	title := flat["Report.Title"]
+	title := flat["projectName"]
 	if title == "" {
-		title = "Report"
+		title = flat["Project.Name"]
 	}
-	author := flat["Summary.Author"]
+	if title == "" {
+		title = flat["Report.Title"]
+	}
+	if title == "" {
+		title = "PROJECT"
+	}
+	author := flat["accountableExecutive"]
 	if author == "" {
-		author = "System Generated"
+		author = flat["Summary.Author"]
+	}
+	if author == "" {
+		author = flat["Executive.Accountable"]
 	}
 
 	doc := domain.NewDocument(title, author, generatedAt, items)
-	if s := flat["Summary.Overview"]; s != "" {
-		doc.Summary.Overview = s
-	}
-	if s := flat["Report.Date"]; s != "" {
-		doc.Report.Date = s
-	}
-	if s := flat["Report.GeneratedAt"]; s != "" {
-		doc.Report.GeneratedAt = s
-	}
 	return doc, nil
 }
 
-// ScalarPlaceholders returns non-record keys as placeholder map (merged after record expansion).
 func ScalarPlaceholders(data map[string]interface{}) map[string]string {
 	out := flattenMap("", data)
 	for _, key := range recordListKeys {
 		delete(out, key)
 	}
 	for k := range out {
-		if strings.HasPrefix(k, "Record.") || strings.HasPrefix(k, "Record_") {
+		if strings.HasPrefix(k, "Record.") || strings.HasPrefix(k, "Record_") ||
+			strings.HasPrefix(k, "issue.") || strings.HasPrefix(k, "issue_") {
 			delete(out, k)
 		}
 	}
@@ -108,11 +103,13 @@ func stringify(v interface{}) string {
 }
 
 func parseRecordInputs(data map[string]interface{}) ([]domain.LineItemInput, error) {
-	var raw interface{}
-	for _, key := range recordListKeys {
-		if v, ok := data[key]; ok {
-			raw = v
-			break
+	raw := issuesFromCase(data)
+	if raw == nil {
+		for _, key := range recordListKeys {
+			if v, ok := data[key]; ok {
+				raw = v
+				break
+			}
 		}
 	}
 	if raw == nil {
@@ -140,24 +137,45 @@ func parseRecordInputs(data map[string]interface{}) ([]domain.LineItemInput, err
 func mapsToInputs(rows []map[string]interface{}) ([]domain.LineItemInput, error) {
 	out := make([]domain.LineItemInput, 0, len(rows))
 	for i, row := range rows {
-		title := stringify(row["Title"])
+		title := field(row, "Title", "title")
 		if title == "" {
-			title = stringify(row["title"])
+			title = fmt.Sprintf("CONCERN %d", i+1)
 		}
-		category := stringify(row["Category"])
-		if category == "" {
-			category = stringify(row["category"])
-		}
-		if title == "" {
-			return nil, fmt.Errorf("records[%d]: Title is required", i)
+		brief := field(row, "brief", "ConcernBrief", "concernBrief", "Brief")
+		summary := field(row, "ConcernSummary", "concernSummary", "Summary")
+		if summary == "" {
+			summary = brief
 		}
 		out = append(out, domain.LineItemInput{
-			ID:       int64(i + 1),
-			Title:    title,
-			Category: category,
+			Title:                title,
+			ConcernBrief:         brief,
+			ConcernSummary:       summary,
+			Category:             field(row, "Category", "category"),
+			FactsAndEvidence:     field(row, "FactsAndEvidence", "factsAndEvidence"),
+			TeamsChatFindings:    field(row, "TeamsChatFindings", "teamsChatFindings"),
+			ColleagueAStatements: field(row, "ColleagueAStatements", "colleagueAStatements"),
+			ColleagueBStatements: field(row, "ColleagueBStatements", "colleagueBStatements"),
+			FindingOutcome:       field(row, "FindingOutcome", "findingOutcome"),
 		})
 	}
 	return out, nil
+}
+
+func issuesFromCase(data map[string]interface{}) interface{} {
+	caseObj, ok := data["case"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	return caseObj["issues"]
+}
+
+func field(row map[string]interface{}, keys ...string) string {
+	for _, k := range keys {
+		if v, ok := row[k]; ok {
+			return stringify(v)
+		}
+	}
+	return ""
 }
 
 func parseTime(s string) (time.Time, error) {

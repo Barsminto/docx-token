@@ -22,7 +22,7 @@ func main() {
 	templatePath := flag.String("template", defaultTpl, "docx template path")
 	outputPath := flag.String("out", defaultOut, "output docx path")
 	skipTemplate := flag.Bool("skip-template", false, "do not auto-create template if missing")
-	writeTemplate := flag.Bool("write-template", false, "overwrite template with built-in layout")
+	writeTemplate := flag.Bool("write-template", false, "overwrite template with built-in GI layout")
 	flag.Parse()
 
 	exitOnErr(os.MkdirAll(filepath.Dir(*templatePath), 0o755))
@@ -37,27 +37,10 @@ func main() {
 		}
 	}
 
-	data := sampleDataMap(time.Now())
 	exitOnErr(os.MkdirAll(filepath.Dir(*outputPath), 0o755))
-	exitOnErr(docxtoken.Fill(*templatePath, *outputPath, data))
+	exitOnErr(docxtoken.Fill(*templatePath, *outputPath, sample.FillMap(time.Now())))
 
 	fmt.Printf("Generated: %s\n", *outputPath)
-}
-
-func sampleDataMap(now time.Time) map[string]interface{} {
-	records := make([]map[string]interface{}, 0, len(sample.Items()))
-	for _, item := range sample.Items() {
-		records = append(records, map[string]interface{}{
-			"Title":    item.Title,
-			"Category": item.Category,
-		})
-	}
-	return map[string]interface{}{
-		"Report.Title":       "Business Data Report",
-		"Summary.Author":     "System Generated",
-		"Report.GeneratedAt": now.Format("2006-01-02 15:04"),
-		docxtoken.RecordsKey: records,
-	}
 }
 
 func exitOnErr(err error) {

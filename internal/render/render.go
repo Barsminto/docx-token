@@ -23,12 +23,14 @@ func Generate(templatePath, outputPath string, doc domain.Document, extras map[s
 		return fmt.Errorf("read issue sequence from template: %w", err)
 	}
 	doc.AssignIssueSeq(firstSeq)
+	concNum := firstSeq + len(doc.Items)
+	recNum := concNum + 1
 
 	expanded, err := expandRecordBlocks(raw, len(doc.Items))
 	if err != nil {
 		return err
 	}
-	expanded, err = patchDocumentXML(expanded, doc.Items)
+	expanded, err = patchDocumentXML(expanded, doc.Items, concNum, recNum)
 	if err != nil {
 		return err
 	}
@@ -43,6 +45,8 @@ func Generate(templatePath, outputPath string, doc domain.Document, extras map[s
 	for k, v := range extras {
 		placeholders[k] = v
 	}
+	placeholders["Conclusion.Number"] = fmt.Sprintf("%d", concNum)
+	placeholders["Recommendations.Number"] = fmt.Sprintf("%d", recNum)
 	if err := ReplaceFromMap(document, placeholders); err != nil {
 		return fmt.Errorf("replace placeholders: %w", err)
 	}

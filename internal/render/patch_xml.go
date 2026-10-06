@@ -5,11 +5,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/liboyang/docx-token/internal/domain"
 )
 
-func patchDocumentXML(docxBytes []byte, items []domain.LineItem) ([]byte, error) {
+func patchDocumentXML(docxBytes []byte, items []domain.LineItem, conclusionNum, recommendationsNum int) ([]byte, error) {
 	zr, err := zip.NewReader(bytes.NewReader(docxBytes), int64(len(docxBytes)))
 	if err != nil {
 		return nil, err
@@ -35,7 +36,27 @@ func patchDocumentXML(docxBytes []byte, items []domain.LineItem) ([]byte, error)
 	if !ok {
 		return nil, fmt.Errorf("word/document.xml not found")
 	}
-	files["word/document.xml"] = []byte(patchIssueHeadings(string(raw), items))
+	docXML := patchRecordSubsections(string(raw), items)
+	docXML = reapplyConcernListNumIDs(docXML)
+	docXML = stripSubsectionMarkers(docXML)
+	docXML = patchClosingSections(docXML, conclusionNum, recommendationsNum)
+	docXML = patchIssueHeadings(docXML, items)
+	docXML = repairFragmentedPlaceholders(docXML)
+	docXML = trimEmptyParagraphsBeforeHeading(docXML, "INVESTIGATION REPORT")
+	docXML = ensurePageBreakBeforeHeading(docXML, "INVESTIGATION REPORT")
+	docXML = inheritParagraphRunFonts(docXML)
+	files["word/document.xml"] = []byte(docXML)
+	for name, data := range files {
+		if isHeaderOrFooterPart(name) {
+			files[name] = []byte(repairFragmentedPlaceholders(string(data)))
+		}
+	}
+
+	if num, ok := files["word/numbering.xml"]; ok {
+		numXML := mergeRecordNumberingDefs(string(num), items)
+		numXML = mergeClosingNumberingDefs(numXML, conclusionNum, recommendationsNum)
+		files["word/numbering.xml"] = []byte(numXML)
+	}
 
 	buf := new(bytes.Buffer)
 	zw := zip.NewWriter(buf)
@@ -52,4 +73,12 @@ func patchDocumentXML(docxBytes []byte, items []domain.LineItem) ([]byte, error)
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func isHeaderOrFooterPart(name string) bool {
+	if !strings.HasPrefix(name, "word/") || !strings.HasSuffix(name, ".xml") {
+		return false
+	}
+	base := strings.TrimPrefix(name, "word/")
+	return strings.HasPrefix(base, "header") || strings.HasPrefix(base, "footer")
 }

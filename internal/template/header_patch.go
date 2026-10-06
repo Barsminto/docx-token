@@ -7,16 +7,13 @@ import (
 	"os"
 	"regexp"
 	"strings"
-
-	"github.com/liboyang/docx-token/internal/domain"
 )
 
 const headerRID = "rId9"
 
 var contentTypeOverrideRE = regexp.MustCompile(`(</Types>)`)
 
-// attachDefaultHeader adds word/header1.xml with Report tokens and links it in sectPr.
-func attachDefaultHeader(docxPath string) error {
+func attachHeader(docxPath string, headerBody string) error {
 	raw, err := os.ReadFile(docxPath)
 	if err != nil {
 		return err
@@ -42,14 +39,12 @@ func attachDefaultHeader(docxPath string) error {
 		order = append(order, f.Name)
 	}
 
-	headerXML := `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+	hdr := `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
 		`<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ` +
 		`xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">` +
-		`<w:p><w:r><w:t>` + domain.Wrap(domain.Key("Report", "Title")) +
-		` | ` + domain.Wrap(domain.Key("Report", "GeneratedAt")) +
-		`</w:t></w:r></w:p></w:hdr>`
+		headerBody + `</w:hdr>`
 
-	files["word/header1.xml"] = []byte(headerXML)
+	files["word/header1.xml"] = []byte(hdr)
 	if !contains(order, "word/header1.xml") {
 		order = append(order, "word/header1.xml")
 	}
@@ -90,6 +85,21 @@ func attachDefaultHeader(docxPath string) error {
 		return err
 	}
 	return os.WriteFile(docxPath, buf.Bytes(), 0o644)
+}
+
+// attachDefaultHeader adds word/header1.xml with Report tokens and links it in sectPr.
+func attachDefaultHeader(docxPath string) error {
+	body := `<w:p><w:r><w:rPr><w:color w:val="FF0000"/></w:rPr><w:t>CONFIDENTIAL</w:t></w:r></w:p>` +
+		`<w:p><w:r><w:t>{projectName} | {case.name} | DRAFT: {draftDate}</w:t></w:r></w:p>`
+	return attachHeader(docxPath, body)
+}
+
+// attachReferenceHeader includes all common header placeholders for the reference template.
+func attachReferenceHeader(docxPath string) error {
+	body := `<w:p><w:r><w:rPr><w:color w:val="FF0000"/></w:rPr><w:t>CONFIDENTIAL</w:t></w:r></w:p>` +
+		`<w:p><w:r><w:t>{projectName} | {case.name} | DRAFT: {draftDate}</w:t></w:r></w:p>` +
+		`<w:p><w:r><w:t>{Report.Title} | {Report.Date} | generated {Report.GeneratedAt}</w:t></w:r></w:p>`
+	return attachHeader(docxPath, body)
 }
 
 func contains(ss []string, s string) bool {

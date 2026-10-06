@@ -1,21 +1,44 @@
 package template
 
-// Loop region markers — copy whole paragraphs between begin/end; only {Record.*} keys are renamed.
+// Structural markers (removed during template build or fill). Data placeholders use {path.to.field}.
 const (
-	BeginIssueListMarker = "{BEGIN_ISSUE_LIST}"
-	EndIssueListMarker   = "{END_ISSUE_LIST}"
-	BeginRecordMarker    = "{BEGIN_RECORD}"
-	EndRecordMarker      = "{END_RECORD}"
+	DotMarker   = "{.}" // decimal subsection (1.1, 8.1, 3.1) — Word list ilvl 1
+	TildeMarker = "{~}" // letter sub-item (a., b.)
+
+	BeginCaseIssuesMarker           = "{BEGIN:case.issues}"
+	EndCaseIssuesMarker             = "{END:case.issues}"
+	BeginCaseIssuesBackgroundMarker = "{BEGIN:case.issues:background}"
+	EndCaseIssuesBackgroundMarker   = "{END:case.issues:background}"
+	BeginCaseIssuesRecordMarker     = "{BEGIN:case.issues:record}"
+	EndCaseIssuesRecordMarker       = "{END:case.issues:record}"
+
+	// Legacy aliases (same strings as above where applicable).
+	BeginIssueListMarker      = BeginCaseIssuesMarker
+	EndIssueListMarker        = EndCaseIssuesMarker
+	BeginBackgroundListMarker = BeginCaseIssuesBackgroundMarker
+	EndBackgroundListMarker   = EndCaseIssuesBackgroundMarker
+	BeginRecordMarker         = BeginCaseIssuesRecordMarker
+	EndRecordMarker           = EndCaseIssuesRecordMarker
+
+	SubsecCh1Marker        = DotMarker
+	SubsecCh1RestartMarker = DotMarker
+	SubsecCh2Marker        = DotMarker
+	SubsecRecordMarker     = DotMarker
+	SubsecConclusionMarker = DotMarker
+	SubsecRecommendMarker  = DotMarker
+	SubsecLetterMarker     = TildeMarker
 )
 
-// LoopRegion defines one repeatable block in the template.
+// LoopRegion duplicates paragraphs between Begin and End; ItemPrefix is the loop variable (issue → issue_0).
 type LoopRegion struct {
-	Begin string
-	End   string
+	Begin      string
+	End        string
+	ItemPrefix string
 }
 
-// LoopRegions order matters: expand the summary list first, then issue detail sections.
+// LoopRegions order matters.
 var LoopRegions = []LoopRegion{
-	{Begin: BeginIssueListMarker, End: EndIssueListMarker},
-	{Begin: BeginRecordMarker, End: EndRecordMarker},
+	{Begin: BeginCaseIssuesMarker, End: EndCaseIssuesMarker, ItemPrefix: "issue"},
+	{Begin: BeginCaseIssuesBackgroundMarker, End: EndCaseIssuesBackgroundMarker, ItemPrefix: "issue"},
+	{Begin: BeginCaseIssuesRecordMarker, End: EndCaseIssuesRecordMarker, ItemPrefix: "issue"},
 }

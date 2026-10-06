@@ -20,7 +20,8 @@ func TestFirstIssueSeqFromBuiltTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if seq != 2 {
-		t.Fatalf("expected first issue seq 2, got %d", seq)
+	// Sections 1. BACKGROUND and 2. INVESTIGATION METHODOLOGY precede {BEGIN_RECORD}.
+	if seq != 3 {
+		t.Fatalf("expected first concern section seq 3, got %d", seq)
 	}
 }

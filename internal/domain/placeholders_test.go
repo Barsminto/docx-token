@@ -6,16 +6,16 @@ import (
 )
 
 func TestDocumentPlaceholdersObjectKeys(t *testing.T) {
-	doc := NewDocument("Q1 Report", "Jane Doe", time.Date(2026, 1, 2, 9, 0, 0, 0, time.UTC), []LineItemInput{
-		{Title: "INC-1", Category: "Hardware"},
+	doc := NewDocument("PROJECT XXX", "Inv", time.Date(2026, 2, 1, 9, 0, 0, 0, time.UTC), []LineItemInput{
+		{Title: "CONCERN 1", ConcernBrief: "Brief", FindingOutcome: "not substantiated"},
 	})
-	doc.AssignIssueSeq(2)
+	doc.AssignIssueSeq(3)
 
 	m := doc.Placeholders()
-	if m[Key("Record_0", "Category")] != "Hardware" {
-		t.Fatalf("Record_0.Category: %q", m[Key("Record_0", "Category")])
+	if m[Key("issue_0", "brief")] != "Brief" {
+		t.Fatalf("brief: %q", m[Key("issue_0", "brief")])
 	}
-	if m[Key("Record_0", "Seq")] != "2" {
-		t.Fatalf("Record_0.Seq: %q", m[Key("Record_0", "Seq")])
+	if m[Key("issue_0", "numberedTitle")] != "3. INVESTIGATION: CONCERN 1" {
+		t.Fatalf("numberedTitle: %q", m[Key("issue_0", "numberedTitle")])
 	}
 }
