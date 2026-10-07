@@ -42,6 +42,9 @@ func expandRecordBlocks(docxBytes []byte, loopSpecs []template.LoopSpec, loopCou
 		return nil, err
 	}
 	files["word/document.xml"] = []byte(expanded)
+	if num, ok := files["word/numbering.xml"]; ok {
+		files["word/numbering.xml"] = []byte(mergeLoopLetterNumberingDefs(string(num), loopSpecs, loopCounts))
+	}
 
 	buf := new(bytes.Buffer)
 	zw := zip.NewWriter(buf)
@@ -62,12 +65,12 @@ func expandRecordBlocks(docxBytes []byte, loopSpecs []template.LoopSpec, loopCou
 
 func expandAllLoops(xml string, specs []template.LoopSpec, counts map[string]int) (string, error) {
 	out := xml
-	for _, spec := range specs {
+	for si, spec := range specs {
 		if !strings.Contains(out, spec.Begin) {
 			continue
 		}
 		n := counts[spec.Begin]
-		next, err := expandLoopRegion(out, spec, n)
+		next, err := expandLoopRegion(out, spec, n, si)
 		if err != nil {
 			return "", fmt.Errorf("%s: %w", spec.Begin, err)
 		}
@@ -77,7 +80,7 @@ func expandAllLoops(xml string, specs []template.LoopSpec, counts map[string]int
 }
 
 // expandLoopRegion duplicates paragraphs between markers; preserves all XML (styles, static subheadings).
-func expandLoopRegion(xml string, spec template.LoopSpec, recordCount int) (string, error) {
+func expandLoopRegion(xml string, spec template.LoopSpec, recordCount int, specIndex int) (string, error) {
 	begin, end := spec.Begin, spec.End
 	prefix := spec.ItemPrefix
 	if prefix == "" {
@@ -110,6 +113,7 @@ func expandLoopRegion(xml string, spec template.LoopSpec, recordCount int) (stri
 		var repeated strings.Builder
 		for i := 0; i < recordCount; i++ {
 			chunk := strings.ReplaceAll(block, loopToken, fmt.Sprintf("{%s_%d.", prefix, i))
+			chunk = applyLoopCopyLetterNumID(chunk, loopLetterNumID(specIndex, i))
 			repeated.WriteString(chunk)
 		}
 		block = repeated.String()

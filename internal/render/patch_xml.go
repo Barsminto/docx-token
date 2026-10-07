@@ -54,6 +54,7 @@ func patchDocumentXML(docxBytes []byte, items []domain.LineItem, conclusionNum, 
 
 	if num, ok := files["word/numbering.xml"]; ok {
 		numXML := mergeRecordNumberingDefs(string(num), items)
+		numXML = mergeRecordLetterNumberingDefs(numXML, len(items))
 		numXML = mergeClosingNumberingDefs(numXML, conclusionNum, recommendationsNum)
 		files["word/numbering.xml"] = []byte(numXML)
 	}

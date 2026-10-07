@@ -67,3 +67,29 @@ func TestExpandLoopFragmentedListIndexInBody(t *testing.T) {
 		t.Fatalf("expected indexed placeholders: %s", out)
 	}
 }
+
+func TestExpandLoopLetterListRestartsPerCopy(t *testing.T) {
+	begin := "{BEGIN:case.items:cn}"
+	end := "{END:case.items:cn}"
+	xml := `<w:body>
+<w:p><w:r><w:t>` + begin + `</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>` + template.TildeMarker + ` first</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>` + template.TildeMarker + ` second</w:t></w:r></w:p>
+<w:p><w:r><w:t>{cn.title}</w:t></w:r></w:p>
+<w:p><w:r><w:t>` + end + `</w:t></w:r></w:p>
+</w:body>`
+	specs := []template.LoopSpec{
+		{Begin: begin, End: end, DataPath: "case.items", ItemPrefix: "cn"},
+	}
+	counts := map[string]int{begin: 2}
+	out, err := expandAllLoops(xml, specs, counts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(out, `numId w:val="500"`) != 2 {
+		t.Fatalf("copy 0 letter list should use numId 500: %s", out)
+	}
+	if strings.Count(out, `numId w:val="501"`) != 2 {
+		t.Fatalf("copy 1 letter list should restart with numId 501: %s", out)
+	}
+}

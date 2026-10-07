@@ -53,6 +53,11 @@ func patchRecordSubsections(documentXML string, items []domain.LineItem) string 
 		if itemIdx < 0 {
 			continue
 		}
+		if strings.Contains(p, template.TildeMarker) {
+			p = stripMarkersInParagraph(p, template.TildeMarker)
+			paragraphs[i] = injectNumPrIntoParagraph(p, recordLetterNumIDBase+itemIdx, 0)
+			continue
+		}
 		newP, ok := applyRecordSubsectionNumPr(p, text, currentNumID)
 		if ok {
 			paragraphs[i] = newP
