@@ -41,3 +41,30 @@ func TestExpandIssueListAndDetailLoops(t *testing.T) {
 		t.Fatal("static paragraphs should be duplicated per concern")
 	}
 }
+
+func TestExpandLoopFragmentedListIndexInBody(t *testing.T) {
+	begin := "{BEGIN:case.items:cn}"
+	end := "{END:case.items:cn}"
+	// Word often splits placeholders in body paragraphs across runs; title may stay in one run.
+	xml := `<w:body>
+<w:p><w:r><w:t>` + begin + `</w:t></w:r></w:p>
+<w:p><w:r><w:t>{cn.listIndex}. Title</w:t></w:r></w:p>
+<w:p><w:r><w:t>{</w:t></w:r><w:r><w:t>cn.listIndex</w:t></w:r><w:r><w:t>}</w:t></w:r></w:p>
+<w:p><w:r><w:t>` + end + `</w:t></w:r></w:p>
+</w:body>`
+	specs := []template.LoopSpec{
+		{Begin: begin, End: end, DataPath: "case.items", ItemPrefix: "cn"},
+	}
+	counts := map[string]int{begin: 2}
+	docXML := repairFragmentedPlaceholders(xml)
+	out, err := expandAllLoops(docXML, specs, counts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out, "{cn.listIndex}") || strings.Contains(out, "{cn.") {
+		t.Fatalf("loop prefix should be expanded: %s", out)
+	}
+	if !strings.Contains(out, "{cn_0.listIndex}") || !strings.Contains(out, "{cn_1.listIndex}") {
+		t.Fatalf("expected indexed placeholders: %s", out)
+	}
+}

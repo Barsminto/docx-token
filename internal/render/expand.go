@@ -37,7 +37,9 @@ func expandRecordBlocks(docxBytes []byte, loopSpecs []template.LoopSpec, loopCou
 	if !ok {
 		return nil, fmt.Errorf("word/document.xml not found")
 	}
-	expanded, err := expandAllLoops(string(raw), loopSpecs, loopCounts)
+	// Merge Word runs split across <w:t> before {prefix. → {prefix_0. replacement.
+	docXML := repairFragmentedPlaceholders(string(raw))
+	expanded, err := expandAllLoops(docXML, loopSpecs, loopCounts)
 	if err != nil {
 		return nil, err
 	}
