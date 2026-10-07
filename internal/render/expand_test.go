@@ -56,8 +56,7 @@ func TestExpandLoopFragmentedListIndexInBody(t *testing.T) {
 		{Begin: begin, End: end, DataPath: "case.items", ItemPrefix: "cn"},
 	}
 	counts := map[string]int{begin: 2}
-	docXML := repairFragmentedPlaceholders(xml)
-	out, err := expandAllLoops(docXML, specs, counts)
+	out, err := expandAllLoops(xml, specs, counts)
 	if err != nil {
 		t.Fatal(err)
 	}

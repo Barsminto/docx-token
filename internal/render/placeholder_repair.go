@@ -10,6 +10,9 @@ var placeholderKeyRE = regexp.MustCompile(`\{[A-Za-z0-9_.]+\}`)
 // repairFragmentedPlaceholders merges Word runs that split tokens like {Background.Period} across <w:t> nodes.
 func repairFragmentedPlaceholders(documentXML string) string {
 	return paragraphRE.ReplaceAllStringFunc(documentXML, func(p string) string {
+		if strings.Contains(p, "footnoteReference") || strings.Contains(p, "endnoteReference") {
+			return p
+		}
 		plain := paragraphPlainText(p)
 		if !strings.Contains(plain, "{") {
 			return p

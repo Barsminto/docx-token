@@ -37,9 +37,7 @@ func expandRecordBlocks(docxBytes []byte, loopSpecs []template.LoopSpec, loopCou
 	if !ok {
 		return nil, fmt.Errorf("word/document.xml not found")
 	}
-	// Merge Word runs split across <w:t> before {prefix. → {prefix_0. replacement.
-	docXML := repairFragmentedPlaceholders(string(raw))
-	expanded, err := expandAllLoops(docXML, loopSpecs, loopCounts)
+	expanded, err := expandAllLoops(string(raw), loopSpecs, loopCounts)
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +103,8 @@ func expandLoopRegion(xml string, spec template.LoopSpec, recordCount int) (stri
 	}
 
 	block := strings.Join(paragraphs[beginIdx+1:endIdx], "")
+	// Repair only inside the loop block so body footnote/endnote runs are not stripped.
+	block = repairFragmentedPlaceholders(block)
 	loopToken := "{" + prefix + "."
 	if strings.Contains(block, loopToken) {
 		var repeated strings.Builder
